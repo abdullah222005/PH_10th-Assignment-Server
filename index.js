@@ -27,8 +27,21 @@ app.get("/", (req, res) => {
 async function run() {
   try {
     await client.connect();
+    const db = client.db('the-book-heaven_DB');
+    const booksCollection = db.collection('all-books');
 
+    app.get('/all-books', async (req, res)=>{
+        const cursor = booksCollection.find();
+        const result = await cursor.toArray();
+        res.send(result);
+    })
 
+    app.get('/book-details/:id', async(req, res)=>{
+        const id = req.params.id;
+        const query = {_id: new ObjectId(id)}
+        const result = await booksCollection.findOne(query);
+        res.send(result);
+    })
 
 
 
