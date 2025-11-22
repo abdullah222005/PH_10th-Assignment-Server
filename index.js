@@ -59,6 +59,12 @@ async function run() {
         res.send(result);
     })
 
+    app.get('/latest-books', async(req, res)=>{
+      const cursor = booksCollection.find().limit(6);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
     // Book Details API
     app.get('/book-details/:id', async(req, res)=>{
         const id = req.params.id;
