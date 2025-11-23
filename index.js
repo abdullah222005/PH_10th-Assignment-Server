@@ -102,11 +102,9 @@ async function run() {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
         let result = await booksCollection.findOne(query);
-
         if (!result) {
           result = await personalBookCollection.findOne(query);
         }
-
         res.send(result);
       } catch (error) {
         console.error("Book details error:", error);
@@ -119,11 +117,9 @@ async function run() {
       try {
         const bookId = req.params.id;
         const { userName, userEmail, comment, userPhoto } = req.body;
-
         if (!comment || !userName || !userEmail) {
           return res.status(400).send({ error: "All fields are required" });
         }
-
         const newComment = {
           userName,
           userEmail,
@@ -132,7 +128,6 @@ async function run() {
           bookId,
           createdAt: new Date(),
         };
-
         const commentsCollection = db.collection("comments");
         const result = await commentsCollection.insertOne(newComment);
         res.send(result);
@@ -171,39 +166,28 @@ async function run() {
       }
     });
 
-    // Update book API - COMPLETELY FIXED
+    // Update book API 
     app.patch("/update-book/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const updatedBook = req.body;
-
         console.log("Update request for ID:", id);
         console.log("Update data:", updatedBook);
-
-        // Remove _id from update data if it exists
         delete updatedBook._id;
-
         const query = { _id: new ObjectId(id) };
-
-        // Try updating in main collection first
         let result = await booksCollection.updateOne(query, {
           $set: updatedBook,
         });
-
         console.log("Main collection result:", result);
-
-        // If not found in main collection, try personal collection
         if (result.matchedCount === 0) {
           result = await personalBookCollection.updateOne(query, {
             $set: updatedBook,
           });
           console.log("Personal collection result:", result);
         }
-
         if (result.matchedCount === 0) {
           return res.status(404).send({ error: "Book not found" });
         }
-
         res.send(result);
       } catch (error) {
         console.error("Update error:", error);
@@ -215,17 +199,13 @@ async function run() {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
-
         let result = await booksCollection.findOne(query);
-
         if (!result) {
           result = await personalBookCollection.findOne(query);
         }
-
         if (!result) {
           return res.status(404).send({ error: "Book not found" });
         }
-
         res.send(result);
       } catch (error) {
         console.error("Fetch error:", error);
@@ -237,11 +217,9 @@ async function run() {
     app.get("/myBooks", async (req, res) => {
       try {
         const email = req.query.email;
-
         if (!email) {
           return res.status(400).send({ error: "Email is required" });
         }
-
         const personalBooks = await personalBookCollection
           .find({ userEmail: email })
           .sort({ rating: -1 })
@@ -258,19 +236,14 @@ async function run() {
       }
     });
 
-    // Delete book API - FIXED
+    // Delete book API
     app.delete("/myBooks/:id", async (req, res) => {
       try {
         const id = req.params.id;
         console.log("Delete request for ID:", id);
-
         const query = { _id: new ObjectId(id) };
-
-        // Try deleting from personal collection first
         let result = await personalBookCollection.deleteOne(query);
         console.log("Personal collection delete result:", result);
-
-        // If not found in personal collection, try main collection
         if (result.deletedCount === 0) {
           result = await booksCollection.deleteOne(query);
           console.log("Main collection delete result:", result);
