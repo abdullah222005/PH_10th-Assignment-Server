@@ -73,7 +73,7 @@ async function run() {
         res.status(500).send({ error: error.message });
       }
     });
-
+    //latest books api
     app.get("/latest-books", async (req, res) => {
       try {
         const cursor = booksCollection.find().sort({ _id: -1 }).limit(6);
@@ -84,7 +84,7 @@ async function run() {
         res.status(500).send({ error: error.message });
       }
     });
-
+    //all books api
     app.post("/all-books", async (req, res) => {
       try {
         const newBook = req.body;
