@@ -1,6 +1,7 @@
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
+require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 1111;
 
@@ -8,8 +9,7 @@ const port = process.env.PORT || 1111;
 app.use(cors());
 app.use(express.json());
 
-const uri =
-  "mongodb+srv://the-book-heaven_DB:dyp4h4hJR9xvuSre@cluster0.gh1jtid.mongodb.net/?appName=Cluster0";
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.gh1jtid.mongodb.net/?appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -25,12 +25,13 @@ app.get("/", (req, res) => {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const db = client.db("the-book-heaven_DB");
     const booksCollection = db.collection("all-books");
     const usersCollection = db.collection("users");
     const personalBookCollection = db.collection("myBooks");
-    const usersComment = db.collection("comments");
+    const usersBooksCollection = db.collection("users-books");
+    const commentsCollection = db.collection("comments");
 
     // Users API
     app.post("/users", async (req, res) => {
@@ -65,7 +66,7 @@ async function run() {
     // All Books API
     app.get("/all-books", async (req, res) => {
       try {
-        const cursor = booksCollection.find().sort({ rating: -1 });
+        const cursor = booksCollection.find();
         const result = await cursor.toArray();
         res.send(result);
       } catch (error) {
@@ -76,7 +77,7 @@ async function run() {
     //latest books api
     app.get("/latest-books", async (req, res) => {
       try {
-        const cursor = booksCollection.find().sort({ _id: -1 }).limit(6);
+        const cursor = booksCollection.find().sort({ _id: -1 }).limit(8);
         const result = await cursor.toArray();
         res.send(result);
       } catch (error) {
@@ -112,6 +113,36 @@ async function run() {
       }
     });
 
+    //my books api
+    app.post("/users-books", async (req, res) => {
+      const { userEmail, bookId } = req.body;
+      const exists = await usersBooksCollection.findOne({
+        userEmail,
+        bookId,
+      });
+      if (exists) {
+        return res.status(409).send({ message: "Already added" });
+      }
+      const result = await usersBooksCollection.insertOne({
+        userEmail,
+        bookId,
+        addedAt: new Date(),
+      });
+      res.send(result);
+    });
+
+ app.get("/users-books/:email", async (req, res) => {
+   try {
+     const email = req.params.email;
+     const query = {userEmail: email}
+     const result = await usersBooksCollection.findOne(query).toArray();
+     res.send(result);
+   } catch (error) {
+     console.error("Fetch users-books error:", error);
+     res.status(500).send({ error: error.message });
+   }
+ });
+
     // Comments API
     app.post("/book-details/:id/comments", async (req, res) => {
       try {
@@ -128,7 +159,6 @@ async function run() {
           bookId,
           createdAt: new Date(),
         };
-        const commentsCollection = db.collection("comments");
         const result = await commentsCollection.insertOne(newComment);
         res.send(result);
       } catch (error) {
@@ -166,24 +196,24 @@ async function run() {
       }
     });
 
-    // Update book API 
+    // Update book API
     app.patch("/update-book/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const updatedBook = req.body;
-        console.log("Update request for ID:", id);
-        console.log("Update data:", updatedBook);
+        // console.log("Update request for ID:", id);
+        // console.log("Update data:", updatedBook);
         delete updatedBook._id;
         const query = { _id: new ObjectId(id) };
         let result = await booksCollection.updateOne(query, {
           $set: updatedBook,
         });
-        console.log("Main collection result:", result);
+        // console.log("Main collection result:", result);
         if (result.matchedCount === 0) {
           result = await personalBookCollection.updateOne(query, {
             $set: updatedBook,
           });
-          console.log("Personal collection result:", result);
+          // console.log("Personal collection result:", result);
         }
         if (result.matchedCount === 0) {
           return res.status(404).send({ error: "Book not found" });
@@ -240,13 +270,13 @@ async function run() {
     app.delete("/myBooks/:id", async (req, res) => {
       try {
         const id = req.params.id;
-        console.log("Delete request for ID:", id);
+        // console.log("Delete request for ID:", id);
         const query = { _id: new ObjectId(id) };
         let result = await personalBookCollection.deleteOne(query);
-        console.log("Personal collection delete result:", result);
+        // console.log("Personal collection delete result:", result);
         if (result.deletedCount === 0) {
           result = await booksCollection.deleteOne(query);
-          console.log("Main collection delete result:", result);
+          // console.log("Main collection delete result:", result);
         }
 
         res.send(result);
@@ -257,9 +287,10 @@ async function run() {
     });
 
     // await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    console
+      .log
+      // "Pinged your deployment. You successfully connected to MongoDB!"
+      ();
   } catch (error) {
     console.error("Database connection error:", error);
   }
@@ -268,5 +299,5 @@ async function run() {
 run().catch(console.dir);
 
 app.listen(port, () => {
-  console.log(`Smart server is running on port: ${port}`);
+  // console.log(`Smart server is running on port: ${port}`);
 });
